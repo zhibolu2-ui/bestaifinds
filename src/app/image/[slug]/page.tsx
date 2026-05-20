@@ -185,9 +185,11 @@ function ImageToolContent({ tool }: { tool: Tool }) {
             if (brightness > 220) d[i + 3] = 0;
           }
           rbCtx.putImageData(rbData, 0, 0);
-          const rbBlob = await new Promise<Blob>((resolve) => rbCanvas.toBlob((b) => resolve(b!), "image/png"));
-          const { saveAs: saveRb } = await import("file-saver");
-          saveRb(rbBlob, "no-bg.png");
+          const rbUrl = rbCanvas.toDataURL("image/png");
+          const rbA = document.createElement("a");
+          rbA.href = rbUrl;
+          rbA.download = "no-bg.png";
+          rbA.click();
           break;
         }
         case "upscale": {
@@ -202,9 +204,11 @@ function ImageToolContent({ tool }: { tool: Tool }) {
           usCtx.imageSmoothingEnabled = true;
           usCtx.imageSmoothingQuality = "high";
           usCtx.drawImage(usImg, 0, 0, usCanvas.width, usCanvas.height);
-          const usBlob = await new Promise<Blob>((resolve) => usCanvas.toBlob((b) => resolve(b!), "image/png"));
-          const { saveAs: saveUs } = await import("file-saver");
-          saveUs(usBlob, "upscaled.png");
+          const usUrl = usCanvas.toDataURL("image/png");
+          const usA = document.createElement("a");
+          usA.href = usUrl;
+          usA.download = "upscaled.png";
+          usA.click();
           break;
         }
         default: await new Promise((r) => setTimeout(r, 1500)); break;
