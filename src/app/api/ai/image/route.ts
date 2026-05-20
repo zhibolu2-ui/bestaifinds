@@ -34,27 +34,32 @@ export async function POST(req: NextRequest) {
         Authorization: `Bearer ${OPENAI_KEY}`,
       },
       body: JSON.stringify({
-        model: "dall-e-3",
+        model: "gpt-image-1",
         prompt,
         n: 1,
         size: "1024x1024",
+        quality: "medium",
       }),
     });
 
     if (!res.ok) {
       const err = await res.text();
-      console.error("DALL-E error:", err);
+      console.error("Image gen error:", err);
       return NextResponse.json({ error: "Image generation failed. Please try again." }, { status: 500 });
     }
 
     const data = await res.json();
-    const imageUrl = data.data?.[0]?.url;
+    const b64 = data.data?.[0]?.b64_json;
+    const url = data.data?.[0]?.url;
 
-    if (!imageUrl) {
-      return NextResponse.json({ error: "No image generated" }, { status: 500 });
+    if (b64) {
+      return NextResponse.json({ b64, revised_prompt: data.data?.[0]?.revised_prompt });
+    }
+    if (url) {
+      return NextResponse.json({ url, revised_prompt: data.data?.[0]?.revised_prompt });
     }
 
-    return NextResponse.json({ url: imageUrl, revised_prompt: data.data?.[0]?.revised_prompt });
+    return NextResponse.json({ error: "No image generated" }, { status: 500 });
   } catch (e) {
     console.error("Image API error:", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

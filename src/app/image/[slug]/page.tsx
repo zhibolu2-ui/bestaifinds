@@ -321,12 +321,12 @@ function AddTextContent({ tool }: { tool: Tool }) {
 function AiImageGenContent({ tool }: { tool: Tool }) {
   const [prompt, setPrompt] = useState("");
   const [generating, setGenerating] = useState(false);
-  const [imageUrl, setImageUrl] = useState("");
+  const [imageSrc, setImageSrc] = useState("");
   const [error, setError] = useState("");
 
   const generate = async () => {
     setGenerating(true);
-    setImageUrl("");
+    setImageSrc("");
     setError("");
     try {
       const res = await fetch("/api/ai/image", {
@@ -335,8 +335,10 @@ function AiImageGenContent({ tool }: { tool: Tool }) {
         body: JSON.stringify({ prompt }),
       });
       const data = await res.json();
-      if (data.url) {
-        setImageUrl(data.url);
+      if (data.b64) {
+        setImageSrc(`data:image/png;base64,${data.b64}`);
+      } else if (data.url) {
+        setImageSrc(data.url);
       } else {
         setError(data.error || "Generation failed. Please try again.");
       }
@@ -345,6 +347,13 @@ function AiImageGenContent({ tool }: { tool: Tool }) {
     } finally {
       setGenerating(false);
     }
+  };
+
+  const downloadImage = () => {
+    const a = document.createElement("a");
+    a.href = imageSrc;
+    a.download = "ai-generated.png";
+    a.click();
   };
 
   return (
@@ -360,15 +369,15 @@ function AiImageGenContent({ tool }: { tool: Tool }) {
           ) : "Generate Image"}
         </button>
         {error && <p className="text-sm text-red-500 text-center">{error}</p>}
-        {imageUrl && (
+        {imageSrc && (
           <div className="space-y-3">
             <div className="rounded-2xl overflow-hidden border border-gray-100 bg-gray-50">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imageUrl} alt="AI Generated" className="w-full" />
+              <img src={imageSrc} alt="AI Generated" className="w-full" />
             </div>
-            <a href={imageUrl} target="_blank" rel="noopener noreferrer" className="block w-full py-2.5 rounded-xl bg-accent-500 text-white text-sm font-medium text-center hover:bg-accent-600 transition-colors">
+            <button onClick={downloadImage} className="block w-full py-2.5 rounded-xl bg-accent-500 text-white text-sm font-medium text-center hover:bg-accent-600 transition-colors">
               Download Image
-            </a>
+            </button>
           </div>
         )}
       </div>
