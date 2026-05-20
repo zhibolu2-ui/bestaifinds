@@ -16,6 +16,7 @@ import {
   combineImages,
   cropImage,
 } from "@/lib/image-tools";
+import { canUse, recordUsage, getRemainingUses } from "@/lib/usage-limit";
 
 export default function ImageToolPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -443,7 +444,14 @@ function AiImageGenContent({ tool }: { tool: Tool }) {
   const [progress, setProgress] = useState(0);
   const [elapsed, setElapsed] = useState(0);
 
+  const remaining = typeof window !== "undefined" ? getRemainingUses("ai-image") : 2;
+
   const generate = async () => {
+    if (count > remaining) {
+      setError(`Daily limit reached. You have ${remaining} image(s) remaining today. Upgrade to Pro for unlimited.`);
+      return;
+    }
+
     setGenerating(true);
     setGeneratedImages([]);
     setError("");
@@ -471,10 +479,13 @@ function AiImageGenContent({ tool }: { tool: Tool }) {
           img.b64 ? `data:image/png;base64,${img.b64}` : img.url || ""
         ).filter(Boolean);
         setGeneratedImages(srcs);
+        for (let i = 0; i < srcs.length; i++) recordUsage("ai-image");
       } else if (data.b64) {
         setGeneratedImages([`data:image/png;base64,${data.b64}`]);
+        recordUsage("ai-image");
       } else if (data.url) {
         setGeneratedImages([data.url]);
+        recordUsage("ai-image");
       } else {
         setError(data.error || "Generation failed. Please try again.");
       }
@@ -510,14 +521,18 @@ function AiImageGenContent({ tool }: { tool: Tool }) {
           </div>
         </div>
 
-        <button disabled={generating || !prompt.trim()} onClick={generate} className="w-full py-3 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-medium shadow-md disabled:opacity-50 transition-all">
+        <button disabled={generating || !prompt.trim() || remaining <= 0} onClick={generate} className="w-full py-3 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-medium shadow-md disabled:opacity-50 transition-all">
           {generating ? (
             <span className="inline-flex items-center gap-2">
               <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg>
               Generating {count} image{count > 1 ? "s" : ""}...
             </span>
-          ) : `Generate ${count} Image${count > 1 ? "s" : ""}`}
+          ) : remaining <= 0 ? "Daily limit reached" : `Generate ${count} Image${count > 1 ? "s" : ""}`}
         </button>
+        <p className="text-xs text-center text-gray-400">
+          {remaining > 0 ? `${remaining} free image(s) remaining today` : "Daily limit reached. "}
+          {remaining <= 0 && <a href="/pricing" className="text-primary-500 font-medium">Upgrade to Pro</a>}
+        </p>
         {generating && (
           <div className="space-y-2">
             <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
