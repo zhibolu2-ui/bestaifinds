@@ -29,13 +29,38 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
 
-  const filtered = query.length > 1
-    ? TOOLS.filter(
-        (t) =>
-          t.name.toLowerCase().includes(query.toLowerCase()) ||
-          t.description.toLowerCase().includes(query.toLowerCase()),
-      ).slice(0, 8)
-    : [];
+  const filtered = (() => {
+    if (query.length < 1) return [];
+    const q = query.toLowerCase().trim();
+    const words = q.split(/\s+/).filter(Boolean);
+
+    const scored = TOOLS.map((t) => {
+      const name = t.name.toLowerCase();
+      const desc = t.description.toLowerCase();
+      const cat = t.category.toLowerCase();
+      let score = 0;
+
+      if (name === q) score += 100;
+      else if (name.startsWith(q)) score += 60;
+      else if (name.includes(q)) score += 40;
+      if (desc.includes(q)) score += 20;
+      if (cat.includes(q)) score += 15;
+
+      for (const w of words) {
+        if (name.includes(w)) score += 30;
+        if (desc.includes(w)) score += 10;
+        if (cat.includes(w)) score += 8;
+      }
+
+      return { tool: t, score };
+    })
+      .filter(({ score }) => score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 12)
+      .map(({ tool }) => tool);
+
+    return scored;
+  })();
 
   return (
     <div className="bg-white dark:bg-gray-950">
@@ -82,7 +107,7 @@ export default function Home() {
               />
             </div>
             {filtered.length > 0 && focused && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 py-2 z-50">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 py-2 z-50 max-h-80 overflow-y-auto">
                 {filtered.map((t) => (
                   <Link
                     key={`${t.category}-${t.slug}`}
@@ -90,12 +115,18 @@ export default function Home() {
                     className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   >
                     <span className="text-lg">{t.icon}</span>
-                    <div>
-                      <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{t.name}</p>
-                      <p className="text-xs text-gray-400">{t.description}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{t.name}</p>
+                        <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 uppercase">{t.category}</span>
+                      </div>
+                      <p className="text-xs text-gray-400 truncate">{t.description}</p>
                     </div>
                   </Link>
                 ))}
+                <p className="text-center text-[11px] text-gray-400 py-1.5 border-t border-gray-100 dark:border-gray-800 mt-1">
+                  {filtered.length} result{filtered.length > 1 ? "s" : ""} found
+                </p>
               </div>
             )}
           </div>
