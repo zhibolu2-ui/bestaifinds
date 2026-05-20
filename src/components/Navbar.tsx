@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useRef, useEffect } from "react";
-import { CATEGORIES, Category, TOOLS } from "@/lib/tools";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { CATEGORIES, Category, TOOLS, getToolsByCategory } from "@/lib/tools";
 import ThemeToggle from "./ThemeToggle";
 import ShareButton from "./ShareButton";
 import SignInModal from "./SignInModal";
@@ -15,13 +15,88 @@ const NAV_ITEMS: { cat: Category; icon: string; color: string }[] = [
   { cat: "file", icon: "📁", color: "hover:text-amber-500" },
 ];
 
+function MegaMenu({ cat, onClose }: { cat: Category; onClose: () => void }) {
+  const tools = getToolsByCategory(cat);
+  const featured = tools.filter((t) => t.featured);
+  const others = tools.filter((t) => !t.featured);
+
+  return (
+    <div
+      className="absolute left-0 right-0 top-full bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 shadow-xl z-[60]"
+      onMouseEnter={() => {}}
+      onMouseLeave={onClose}
+    >
+      <div className="mx-auto max-w-6xl px-4 py-6">
+        <div className="flex gap-8">
+          {/* Featured tools - left column */}
+          {featured.length > 0 && (
+            <div className="w-64 shrink-0 border-r border-gray-100 dark:border-gray-800 pr-6">
+              <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
+                Featured Tools
+              </h3>
+              <div className="space-y-1">
+                {featured.map((t) => (
+                  <Link
+                    key={t.slug}
+                    href={`/${t.category}/${t.slug}`}
+                    onClick={onClose}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors group"
+                  >
+                    <span className="text-xl">{t.icon}</span>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{t.name}</p>
+                      <p className="text-xs text-gray-400 line-clamp-1">{t.description}</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Other tools - right columns */}
+          <div className="flex-1">
+            <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
+              {featured.length > 0 ? `Other ${CATEGORIES[cat].label} Tools` : `All ${CATEGORIES[cat].label} Tools`}
+            </h3>
+            <div className="grid grid-cols-3 gap-x-6 gap-y-1">
+              {(featured.length > 0 ? others : tools).map((t) => (
+                <Link
+                  key={t.slug}
+                  href={`/${t.category}/${t.slug}`}
+                  onClick={onClose}
+                  className="px-2 py-1.5 rounded-md text-sm text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                >
+                  {t.name}
+                </Link>
+              ))}
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
+              <Link
+                href={`/${cat}`}
+                onClick={onClose}
+                className="inline-flex items-center gap-1 text-sm font-medium text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
+              >
+                All {CATEGORIES[cat].label} Tools
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [scrolled, setScrolled] = useState(false);
+  const [hoveredCat, setHoveredCat] = useState<Category | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -40,13 +115,43 @@ export default function Navbar() {
     };
   }, []);
 
-  const filtered = query.length > 0
-    ? TOOLS.filter(
-        (t) =>
-          t.name.toLowerCase().includes(query.toLowerCase()) ||
-          t.description.toLowerCase().includes(query.toLowerCase()),
-      ).slice(0, 8)
-    : [];
+  const handleCatEnter = useCallback((cat: Category) => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    setHoveredCat(cat);
+  }, []);
+
+  const handleCatLeave = useCallback(() => {
+    hoverTimeoutRef.current = setTimeout(() => setHoveredCat(null), 150);
+  }, []);
+
+  const handleMegaClose = useCallback(() => {
+    setHoveredCat(null);
+  }, []);
+
+  const filtered = (() => {
+    if (query.length < 1) return [];
+    const q = query.toLowerCase().trim();
+    const words = q.split(/\s+/).filter(Boolean);
+
+    return TOOLS.map((t) => {
+      const name = t.name.toLowerCase();
+      const desc = t.description.toLowerCase();
+      let score = 0;
+      if (name === q) score += 100;
+      else if (name.startsWith(q)) score += 60;
+      else if (name.includes(q)) score += 40;
+      if (desc.includes(q)) score += 20;
+      for (const w of words) {
+        if (name.includes(w)) score += 30;
+        if (desc.includes(w)) score += 10;
+      }
+      return { tool: t, score };
+    })
+      .filter(({ score }) => score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8)
+      .map(({ tool }) => tool);
+  })();
 
   return (
     <>
@@ -66,23 +171,33 @@ export default function Navbar() {
             </span>
           </Link>
 
-          {/* Desktop nav */}
+          {/* Desktop nav with hover mega menu */}
           <div className="hidden md:flex items-center gap-0.5">
             {NAV_ITEMS.map(({ cat, icon, color }) => (
-              <Link
+              <div
                 key={cat}
-                href={`/${cat}`}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 ${color} transition-colors`}
+                onMouseEnter={() => handleCatEnter(cat)}
+                onMouseLeave={handleCatLeave}
+                className="relative"
               >
-                <span className="text-base">{icon}</span>
-                {CATEGORIES[cat].label}
-              </Link>
+                <Link
+                  href={`/${cat}`}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    hoveredCat === cat
+                      ? "text-indigo-600 dark:text-indigo-400 bg-gray-50 dark:bg-gray-900"
+                      : `text-gray-600 dark:text-gray-300 ${color}`
+                  }`}
+                >
+                  <span className="text-base">{icon}</span>
+                  {CATEGORIES[cat].label}
+                  <svg className={`w-3 h-3 ml-0.5 transition-transform ${hoveredCat === cat ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m6 9 6 6 6-6"/></svg>
+                </Link>
+              </div>
             ))}
           </div>
 
           {/* Right side actions */}
           <div className="flex items-center gap-1">
-            {/* Search */}
             <div ref={searchRef} className="relative">
               <button
                 onClick={() => setSearchOpen(!searchOpen)}
@@ -152,6 +267,11 @@ export default function Navbar() {
             </button>
           </div>
         </nav>
+
+        {/* Mega dropdown menu */}
+        {hoveredCat && (
+          <MegaMenu cat={hoveredCat} onClose={handleMegaClose} />
+        )}
 
         {/* Mobile drawer */}
         {mobileOpen && (
