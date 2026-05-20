@@ -14,11 +14,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { prompt } = await req.json();
+    const { prompt, count } = await req.json();
 
     if (!prompt || typeof prompt !== "string") {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
     }
+
+    const n = Math.min(Math.max(1, Number(count) || 1), 4);
 
     if (!OPENAI_KEY) {
       return NextResponse.json(
@@ -36,7 +38,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         model: "gpt-image-1",
         prompt,
-        n: 1,
+        n,
         size: "1024x1024",
         quality: "medium",
         moderation: "low",
@@ -59,17 +61,21 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await res.json();
-    const b64 = data.data?.[0]?.b64_json;
-    const url = data.data?.[0]?.url;
+    const images = (data.data || []).map((item: { b64_json?: string; url?: string; revised_prompt?: string }) => ({
+      b64: item.b64_json || undefined,
+      url: item.url || undefined,
+      revised_prompt: item.revised_prompt || undefined,
+    }));
 
-    if (b64) {
-      return NextResponse.json({ b64, revised_prompt: data.data?.[0]?.revised_prompt });
-    }
-    if (url) {
-      return NextResponse.json({ url, revised_prompt: data.data?.[0]?.revised_prompt });
+    if (images.length === 0) {
+      return NextResponse.json({ error: "No image generated" }, { status: 500 });
     }
 
-    return NextResponse.json({ error: "No image generated" }, { status: 500 });
+    if (images.length === 1) {
+      return NextResponse.json({ b64: images[0].b64, url: images[0].url, revised_prompt: images[0].revised_prompt });
+    }
+
+    return NextResponse.json({ images });
   } catch (e) {
     console.error("Image API error:", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

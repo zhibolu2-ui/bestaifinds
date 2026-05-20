@@ -436,37 +436,45 @@ function AddTextContent({ tool }: { tool: Tool }) {
 
 function AiImageGenContent({ tool }: { tool: Tool }) {
   const [prompt, setPrompt] = useState("");
+  const [count, setCount] = useState(1);
   const [generating, setGenerating] = useState(false);
-  const [imageSrc, setImageSrc] = useState("");
+  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [progress, setProgress] = useState(0);
   const [elapsed, setElapsed] = useState(0);
 
   const generate = async () => {
     setGenerating(true);
-    setImageSrc("");
+    setGeneratedImages([]);
     setError("");
     setProgress(0);
     setElapsed(0);
 
+    const estimatedMs = count * 20000;
     const startTime = Date.now();
     const timer = setInterval(() => {
       const now = Date.now() - startTime;
       setElapsed(Math.floor(now / 1000));
-      setProgress(Math.min(90, (now / 25000) * 90));
+      setProgress(Math.min(90, (now / estimatedMs) * 90));
     }, 200);
 
     try {
       const res = await fetch("/api/ai/image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, count }),
       });
       const data = await res.json();
-      if (data.b64) {
-        setImageSrc(`data:image/png;base64,${data.b64}`);
+
+      if (data.images) {
+        const srcs = data.images.map((img: { b64?: string; url?: string }) =>
+          img.b64 ? `data:image/png;base64,${img.b64}` : img.url || ""
+        ).filter(Boolean);
+        setGeneratedImages(srcs);
+      } else if (data.b64) {
+        setGeneratedImages([`data:image/png;base64,${data.b64}`]);
       } else if (data.url) {
-        setImageSrc(data.url);
+        setGeneratedImages([data.url]);
       } else {
         setError(data.error || "Generation failed. Please try again.");
       }
@@ -479,10 +487,10 @@ function AiImageGenContent({ tool }: { tool: Tool }) {
     }
   };
 
-  const downloadImage = () => {
+  const downloadImage = (src: string, idx: number) => {
     const a = document.createElement("a");
-    a.href = imageSrc;
-    a.download = "ai-generated.png";
+    a.href = src;
+    a.download = `ai-generated-${idx + 1}.png`;
     a.click();
   };
 
@@ -490,13 +498,25 @@ function AiImageGenContent({ tool }: { tool: Tool }) {
     <ToolLayout tool={tool}>
       <div className="mx-auto max-w-2xl space-y-4">
         <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Describe the image you want to create... (e.g. 'A futuristic city at sunset with flying cars')" rows={4} className="w-full rounded-2xl border border-gray-200 p-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300 resize-none" />
+
+        <div className="flex items-center gap-3">
+          <label className="text-sm text-gray-600 whitespace-nowrap">Number of images:</label>
+          <div className="flex gap-1.5">
+            {[1, 2, 3, 4].map((n) => (
+              <button key={n} onClick={() => setCount(n)} className={`w-10 h-10 rounded-xl text-sm font-medium transition-colors ${count === n ? "bg-primary-500 text-white shadow-md" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <button disabled={generating || !prompt.trim()} onClick={generate} className="w-full py-3 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-medium shadow-md disabled:opacity-50 transition-all">
           {generating ? (
             <span className="inline-flex items-center gap-2">
               <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg>
-              Generating...
+              Generating {count} image{count > 1 ? "s" : ""}...
             </span>
-          ) : "Generate Image"}
+          ) : `Generate ${count} Image${count > 1 ? "s" : ""}`}
         </button>
         {generating && (
           <div className="space-y-2">
@@ -504,21 +524,27 @@ function AiImageGenContent({ tool }: { tool: Tool }) {
               <div className="h-full bg-gradient-to-r from-purple-400 to-indigo-600 rounded-full transition-all duration-300 ease-out" style={{ width: `${progress}%` }} />
             </div>
             <div className="flex justify-between text-xs text-gray-400">
-              <span>AI is creating your image... {Math.round(progress)}%</span>
-              <span>{elapsed}s / ~25s</span>
+              <span>AI is creating your image{count > 1 ? "s" : ""}... {Math.round(progress)}%</span>
+              <span>{elapsed}s / ~{Math.round(count * 20)}s</span>
             </div>
           </div>
         )}
         {error && <p className="text-sm text-red-500 text-center">{error}</p>}
-        {imageSrc && (
-          <div className="space-y-3">
-            <div className="rounded-2xl overflow-hidden border border-gray-100 bg-gray-50">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imageSrc} alt="AI Generated" className="w-full" />
+        {generatedImages.length > 0 && (
+          <div className="space-y-4">
+            <div className={generatedImages.length > 1 ? "grid grid-cols-2 gap-3" : ""}>
+              {generatedImages.map((src, i) => (
+                <div key={i} className="space-y-2">
+                  <div className="rounded-2xl overflow-hidden border border-gray-100 bg-gray-50">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={src} alt={`AI Generated ${i + 1}`} className="w-full" />
+                  </div>
+                  <button onClick={() => downloadImage(src, i)} className="w-full py-2 rounded-xl bg-accent-500 text-white text-xs font-medium text-center hover:bg-accent-600 transition-colors">
+                    Download {generatedImages.length > 1 ? `#${i + 1}` : "Image"}
+                  </button>
+                </div>
+              ))}
             </div>
-            <button onClick={downloadImage} className="block w-full py-2.5 rounded-xl bg-accent-500 text-white text-sm font-medium text-center hover:bg-accent-600 transition-colors">
-              Download Image
-            </button>
           </div>
         )}
       </div>
