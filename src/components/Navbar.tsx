@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useSession, signOut } from "next-auth/react";
 import { CATEGORIES, Category, TOOLS, getToolsByCategory } from "@/lib/tools";
 import ThemeToggle from "./ThemeToggle";
 import ShareButton from "./ShareButton";
@@ -89,6 +90,7 @@ function MegaMenu({ cat, onEnter, onLeave }: { cat: Category; onEnter: () => voi
 }
 
 export default function Navbar() {
+  const { data: session } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
@@ -248,12 +250,30 @@ export default function Navbar() {
             <ThemeToggle />
             <ShareButton />
 
-            <button
-              onClick={() => setSignInOpen(true)}
-              className="hidden sm:inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium transition-colors ml-1"
-            >
-              Sign In
-            </button>
+            {session?.user ? (
+              <div className="hidden sm:flex items-center gap-2 ml-1">
+                <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white text-sm font-bold overflow-hidden">
+                  {session.user.image ? (
+                    <img src={session.user.image} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    (session.user.name?.[0] || session.user.email?.[0] || "U").toUpperCase()
+                  )}
+                </div>
+                <button
+                  onClick={() => signOut()}
+                  className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setSignInOpen(true)}
+                className="hidden sm:inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium transition-colors ml-1"
+              >
+                Sign In
+              </button>
+            )}
 
             {/* Mobile hamburger */}
             <button
@@ -294,12 +314,21 @@ export default function Navbar() {
               </Link>
             ))}
             <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
-              <button
-                onClick={() => { setMobileOpen(false); setSignInOpen(true); }}
-                className="w-full flex items-center justify-center px-4 py-2.5 rounded-lg bg-indigo-500 text-white text-sm font-medium"
-              >
-                Sign In
-              </button>
+              {session?.user ? (
+                <button
+                  onClick={() => { setMobileOpen(false); signOut(); }}
+                  className="w-full flex items-center justify-center px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-sm font-medium"
+                >
+                  Sign Out ({session.user.name || session.user.email})
+                </button>
+              ) : (
+                <button
+                  onClick={() => { setMobileOpen(false); setSignInOpen(true); }}
+                  className="w-full flex items-center justify-center px-4 py-2.5 rounded-lg bg-indigo-500 text-white text-sm font-medium"
+                >
+                  Sign In
+                </button>
+              )}
             </div>
           </div>
         )}
