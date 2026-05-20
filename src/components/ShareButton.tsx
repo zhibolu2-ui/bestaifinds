@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 const SOCIALS = [
   {
@@ -35,15 +36,14 @@ const SOCIALS = [
   },
 ];
 
-export default function ShareButton() {
-  const [open, setOpen] = useState(false);
+function ShareModal({ onClose }: { onClose: () => void }) {
   const [copied, setCopied] = useState(false);
   const backdropRef = useRef<HTMLDivElement>(null);
+  const url = typeof window !== "undefined" ? window.location.href : "";
 
   useEffect(() => {
-    if (!open) return;
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", handleEsc);
     document.body.style.overflow = "hidden";
@@ -51,9 +51,7 @@ export default function ShareButton() {
       document.removeEventListener("keydown", handleEsc);
       document.body.style.overflow = "";
     };
-  }, [open]);
-
-  const url = typeof window !== "undefined" ? window.location.href : "";
+  }, [onClose]);
 
   const share = (platform: string) => {
     const encoded = encodeURIComponent(url);
@@ -66,7 +64,7 @@ export default function ShareButton() {
       linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encoded}`,
     };
     window.open(urls[platform], "_blank", "width=600,height=400");
-    setOpen(false);
+    onClose();
   };
 
   const copyLink = () => {
@@ -74,6 +72,64 @@ export default function ShareButton() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  return createPortal(
+    <div
+      ref={backdropRef}
+      onClick={(e) => { if (e.target === backdropRef.current) onClose(); }}
+      style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999 }}
+      className="flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+    >
+      <div className="w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 relative" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        >
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white text-center mb-1">
+          Show Us Some Love
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-6">
+          Tell the world about BestAIFinds
+        </p>
+
+        <div className="flex items-center justify-center gap-4 mb-6">
+          {SOCIALS.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => share(s.id)}
+              className={`w-11 h-11 rounded-full ${s.bg} text-white flex items-center justify-center hover:opacity-90 hover:scale-110 transition-all`}
+              title={s.label}
+            >
+              {s.icon}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+          <input
+            type="text"
+            readOnly
+            value={url}
+            className="flex-1 bg-transparent text-sm text-gray-700 dark:text-gray-300 focus:outline-none truncate"
+          />
+          <button
+            onClick={copyLink}
+            className="text-indigo-500 hover:text-indigo-600 text-sm font-medium whitespace-nowrap transition-colors"
+          >
+            {copied ? "Copied!" : "Copy Link"}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+export default function ShareButton() {
+  const [open, setOpen] = useState(false);
 
   return (
     <>
@@ -85,59 +141,7 @@ export default function ShareButton() {
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
       </button>
 
-      {open && (
-        <div
-          ref={backdropRef}
-          onClick={(e) => { if (e.target === backdropRef.current) setOpen(false); }}
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-        >
-          <div className="w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 relative">
-            <button
-              onClick={() => setOpen(false)}
-              className="absolute top-4 right-4 p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-            </button>
-
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white text-center mb-1">
-              Show Us Some Love
-            </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-6">
-              Tell the world about BestAIFinds
-            </p>
-
-            {/* Social icons */}
-            <div className="flex items-center justify-center gap-4 mb-6">
-              {SOCIALS.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => share(s.id)}
-                  className={`w-11 h-11 rounded-full ${s.bg} text-white flex items-center justify-center hover:opacity-90 hover:scale-110 transition-all`}
-                  title={s.label}
-                >
-                  {s.icon}
-                </button>
-              ))}
-            </div>
-
-            {/* Copy link */}
-            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-              <input
-                type="text"
-                readOnly
-                value={url}
-                className="flex-1 bg-transparent text-sm text-gray-700 dark:text-gray-300 focus:outline-none truncate"
-              />
-              <button
-                onClick={copyLink}
-                className="text-indigo-500 hover:text-indigo-600 text-sm font-medium whitespace-nowrap transition-colors"
-              >
-                {copied ? "Copied!" : "Copy Link"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {open && <ShareModal onClose={() => setOpen(false)} />}
     </>
   );
 }
