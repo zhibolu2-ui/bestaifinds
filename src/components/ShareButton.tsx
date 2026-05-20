@@ -89,7 +89,7 @@ export default function ShareButton() {
         <div
           ref={backdropRef}
           onClick={(e) => { if (e.target === backdropRef.current) setOpen(false); }}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
         >
           <div className="w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 relative">
             <button

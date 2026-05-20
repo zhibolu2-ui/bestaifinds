@@ -157,7 +157,7 @@ export default function Home() {
       {/* Category Horizontal Scroll Cards */}
       <section className="mx-auto max-w-6xl px-4 mt-6 mb-10">
         <div
-          className="flex gap-4 overflow-x-auto pb-2"
+          className="flex gap-4 overflow-x-auto pb-2 pr-4"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {CAT_CARDS.map(({ cat, icon, bg, label, solve }) => {
@@ -168,7 +168,7 @@ export default function Home() {
               <Link
                 key={cat}
                 href={`/${cat}`}
-                className={`shrink-0 w-[220px] rounded-[18px] p-6 ${bg} text-white hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group relative`}
+                className={`shrink-0 w-[220px] lg:w-auto lg:flex-1 rounded-[18px] p-6 ${bg} text-white hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group relative`}
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl">
