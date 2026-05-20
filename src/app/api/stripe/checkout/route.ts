@@ -10,10 +10,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Please sign in first" }, { status: 401 });
     }
 
-    const { plan } = await req.json();
+    const { plan, billing = "monthly" } = await req.json();
     if (plan !== "pro" && plan !== "business") {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
     }
+    const period = billing === "yearly" ? "yearly" : "monthly";
 
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
@@ -39,11 +40,12 @@ export async function POST(req: Request) {
     }
 
     const planConfig = PLANS[plan as keyof typeof PLANS];
+    const priceId = planConfig[period].priceId;
     const checkoutSession = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: "subscription",
       payment_method_types: ["card"],
-      line_items: [{ price: planConfig.priceId, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${process.env.NEXTAUTH_URL}/pricing?success=true`,
       cancel_url: `${process.env.NEXTAUTH_URL}/pricing?canceled=true`,
       metadata: { userId: user.id, plan },

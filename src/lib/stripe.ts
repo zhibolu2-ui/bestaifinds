@@ -15,25 +15,24 @@ export function getStripe(): Stripe {
 export const PLANS = {
   pro: {
     name: "Pro",
-    price: 9.9,
-    priceId: process.env.STRIPE_PRO_PRICE_ID || "",
-    features: [
-      "Unlimited AI tool usage",
-      "No daily limits",
-      "Ad-free experience",
-      "Priority processing",
-    ],
+    monthly: {
+      price: 9.9,
+      priceId: process.env.STRIPE_PRO_MONTHLY_PRICE_ID || process.env.STRIPE_PRO_PRICE_ID || "",
+    },
+    yearly: {
+      price: 6.9,
+      priceId: process.env.STRIPE_PRO_YEARLY_PRICE_ID || "",
+    },
   },
   business: {
     name: "Business",
-    price: 19.9,
-    priceId: process.env.STRIPE_BUSINESS_PRICE_ID || "",
-    features: [
-      "Everything in Pro",
-      "Batch processing",
-      "API access",
-      "Priority support",
-      "Custom branding",
-    ],
+    monthly: {
+      price: 19.9,
+      priceId: process.env.STRIPE_BIZ_MONTHLY_PRICE_ID || process.env.STRIPE_BUSINESS_PRICE_ID || "",
+    },
+    yearly: {
+      price: 13.9,
+      priceId: process.env.STRIPE_BIZ_YEARLY_PRICE_ID || "",
+    },
   },
 } as const;

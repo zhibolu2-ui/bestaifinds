@@ -94,6 +94,8 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
   const [scrolled, setScrolled] = useState(false);
   const [hoveredCat, setHoveredCat] = useState<Category | null>(null);
@@ -104,6 +106,9 @@ export default function Navbar() {
     function onClickOutside(e: MouseEvent) {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         setSearchOpen(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
       }
     }
     function onScroll() {
@@ -251,20 +256,58 @@ export default function Navbar() {
             <ShareButton />
 
             {session?.user ? (
-              <div className="hidden sm:flex items-center gap-2 ml-1">
-                <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white text-sm font-bold overflow-hidden">
+              <div ref={profileRef} className="relative hidden sm:block ml-1">
+                <button
+                  onClick={() => setProfileOpen(!profileOpen)}
+                  className="w-9 h-9 rounded-full bg-indigo-500 flex items-center justify-center text-white text-sm font-bold overflow-hidden ring-2 ring-transparent hover:ring-indigo-300 dark:hover:ring-indigo-600 transition-all"
+                >
                   {session.user.image ? (
                     <img src={session.user.image} alt="" className="w-full h-full object-cover" />
                   ) : (
                     (session.user.name?.[0] || session.user.email?.[0] || "U").toUpperCase()
                   )}
-                </div>
-                <button
-                  onClick={() => signOut()}
-                  className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-                >
-                  Sign Out
                 </button>
+
+                {profileOpen && (
+                  <div className="absolute right-0 top-12 w-64 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 py-2 z-50">
+                    <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold overflow-hidden">
+                          {session.user.image ? (
+                            <img src={session.user.image} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            (session.user.name?.[0] || session.user.email?.[0] || "U").toUpperCase()
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{session.user.name || "User"}</p>
+                          <p className="text-xs text-gray-400 truncate">{session.user.email}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="py-1">
+                      <Link href="/pricing" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                        <svg className="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        Billing Info
+                      </Link>
+                      <Link href="/pricing" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium">
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275Z"/></svg>
+                        Upgrade
+                      </Link>
+                    </div>
+
+                    <div className="border-t border-gray-100 dark:border-gray-800 py-1">
+                      <button
+                        onClick={() => { setProfileOpen(false); signOut(); }}
+                        className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <button

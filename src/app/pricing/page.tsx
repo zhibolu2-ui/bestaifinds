@@ -60,6 +60,7 @@ export default function PricingPage() {
   const { data: session } = useSession();
   const [loading, setLoading] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -76,7 +77,7 @@ export default function PricingPage() {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, billing }),
       });
       const data = await res.json();
       if (data.url) {
@@ -92,6 +93,8 @@ export default function PricingPage() {
   };
 
   const userPlan = (session?.user as Record<string, unknown>)?.plan as string || "free";
+  const proPrice = billing === "monthly" ? 9.90 : 6.90;
+  const bizPrice = billing === "monthly" ? 19.90 : 13.90;
 
   return (
     <div className="bg-[#f7f7f8] dark:bg-[#16181c]">
@@ -106,9 +109,34 @@ export default function PricingPage() {
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
             Simple, Transparent Pricing
           </h1>
-          <p className="text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
+          <p className="text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto mb-8">
             Most tools are free forever. Upgrade only when you need unlimited AI features.
           </p>
+
+          {/* Billing toggle */}
+          <div className="inline-flex items-center bg-gray-100 dark:bg-gray-800 rounded-full p-1">
+            <button
+              onClick={() => setBilling("monthly")}
+              className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
+                billing === "monthly"
+                  ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setBilling("yearly")}
+              className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
+                billing === "yearly"
+                  ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              }`}
+            >
+              Yearly
+              <span className="ml-1.5 text-xs text-green-500 font-semibold">Save 30%</span>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -154,10 +182,12 @@ export default function PricingPage() {
 
             <h3 className="text-xl font-bold mb-1">Pro</h3>
             <div className="flex items-baseline gap-1 mb-1">
-              <span className="text-4xl font-extrabold">$9.90</span>
+              <span className="text-4xl font-extrabold">${proPrice.toFixed(2)}</span>
               <span className="text-sm text-indigo-200">/month</span>
             </div>
-            <p className="text-sm text-indigo-200 mb-6">Unlimited AI access</p>
+            <p className="text-sm text-indigo-200 mb-6">
+              {billing === "yearly" ? `Billed $${(proPrice * 12).toFixed(2)}/year` : "Unlimited AI access"}
+            </p>
 
             <button
               onClick={() => handleSubscribe("pro")}
@@ -185,10 +215,12 @@ export default function PricingPage() {
 
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Business</h3>
             <div className="flex items-baseline gap-1 mb-1">
-              <span className="text-4xl font-extrabold text-gray-900 dark:text-white">$19.90</span>
+              <span className="text-4xl font-extrabold text-gray-900 dark:text-white">${bizPrice.toFixed(2)}</span>
               <span className="text-sm text-gray-500">/month</span>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Pro + advanced features</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              {billing === "yearly" ? `Billed $${(bizPrice * 12).toFixed(2)}/year` : "Pro + advanced features"}
+            </p>
 
             <button
               onClick={() => handleSubscribe("business")}
