@@ -67,6 +67,7 @@ export default function Footer() {
             &copy; {new Date().getFullYear()} BestAIFinds. All rights reserved. All tools are free to use.
           </p>
           <div className="flex flex-wrap justify-center gap-5">
+            <Link href="/about" className="text-xs text-gray-400 hover:text-indigo-400 transition-colors">About Us</Link>
             <Link href="/blog" className="text-xs text-gray-400 hover:text-indigo-400 transition-colors">Blog</Link>
             <Link href="/pricing" className="text-xs text-gray-400 hover:text-indigo-400 transition-colors">Pricing</Link>
             <Link href="/privacy" className="text-xs text-gray-400 hover:text-indigo-400 transition-colors">Privacy Policy</Link>
