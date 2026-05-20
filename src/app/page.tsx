@@ -1,21 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import ToolCard from "@/components/ToolCard";
 import {
   CATEGORIES,
   Category,
   getToolsByCategory,
+  getFeaturedTools,
   TOOLS,
 } from "@/lib/tools";
 
-const CAT_CONFIG: { cat: Category; icon: string; gradient: string; btnColor: string; cardBg: string }[] = [
-  { cat: "pdf", icon: "📄", gradient: "from-red-500 to-rose-600", btnColor: "bg-red-500 hover:bg-red-600", cardBg: "bg-gradient-to-br from-red-500 to-rose-600" },
-  { cat: "image", icon: "🖼️", gradient: "from-blue-500 to-indigo-600", btnColor: "bg-blue-500 hover:bg-blue-600", cardBg: "bg-gradient-to-br from-blue-500 to-indigo-600" },
-  { cat: "write", icon: "✍️", gradient: "from-emerald-500 to-teal-600", btnColor: "bg-emerald-500 hover:bg-emerald-600", cardBg: "bg-gradient-to-br from-emerald-500 to-teal-600" },
-  { cat: "video", icon: "🎬", gradient: "from-purple-500 to-violet-600", btnColor: "bg-purple-500 hover:bg-purple-600", cardBg: "bg-gradient-to-br from-purple-500 to-violet-600" },
-  { cat: "file", icon: "📁", gradient: "from-amber-500 to-orange-600", btnColor: "bg-amber-500 hover:bg-amber-600", cardBg: "bg-gradient-to-br from-amber-500 to-orange-600" },
+const TAB_CONFIG: { id: Category | "all"; label: string; icon: string }[] = [
+  { id: "all", label: "All Tools", icon: "🔧" },
+  { id: "pdf", label: "Pdf Tools", icon: "📄" },
+  { id: "image", label: "Image Tools", icon: "🖼️" },
+  { id: "write", label: "AI Write", icon: "✍️" },
+  { id: "video", label: "Video Tools", icon: "🎬" },
+  { id: "file", label: "Converter Tools", icon: "📁" },
 ];
 
 const FEATURES = [
@@ -28,40 +30,48 @@ const FEATURES = [
 export default function Home() {
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
-  
+  const [activeTab, setActiveTab] = useState<Category | "all">("all");
+  const carouselRef = useRef<HTMLDivElement>(null);
 
   const filtered = (() => {
     if (query.length < 1) return [];
     const q = query.toLowerCase().trim();
     const words = q.split(/\s+/).filter(Boolean);
 
-    const scored = TOOLS.map((t) => {
+    return TOOLS.map((t) => {
       const name = t.name.toLowerCase();
       const desc = t.description.toLowerCase();
       const cat = t.category.toLowerCase();
       let score = 0;
-
       if (name === q) score += 100;
       else if (name.startsWith(q)) score += 60;
       else if (name.includes(q)) score += 40;
       if (desc.includes(q)) score += 20;
       if (cat.includes(q)) score += 15;
-
       for (const w of words) {
         if (name.includes(w)) score += 30;
         if (desc.includes(w)) score += 10;
         if (cat.includes(w)) score += 8;
       }
-
       return { tool: t, score };
     })
       .filter(({ score }) => score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, 12)
       .map(({ tool }) => tool);
-
-    return scored;
   })();
+
+  const displayTools = activeTab === "all"
+    ? TOOLS
+    : getToolsByCategory(activeTab);
+
+  const featuredTools = getFeaturedTools();
+
+  const scrollCarousel = (dir: "left" | "right") => {
+    if (!carouselRef.current) return;
+    const amount = 340;
+    carouselRef.current.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
+  };
 
   return (
     <div className="bg-white dark:bg-gray-950">
@@ -72,7 +82,7 @@ export default function Home() {
           <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-purple-200/20 dark:bg-purple-900/10 rounded-full blur-3xl" />
         </div>
 
-        <div className="relative mx-auto max-w-4xl px-4 pt-20 pb-16 text-center">
+        <div className="relative mx-auto max-w-4xl px-4 pt-20 pb-12 text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-medium mb-6">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
             {TOOLS.length}+ Free Tools Available
@@ -134,6 +144,68 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Most Popular Tools - Tab Filter */}
+      <section className="mx-auto max-w-6xl px-4 py-12">
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-center text-gray-900 dark:text-white mb-2">
+          Our Most Popular Tools
+        </h2>
+        <p className="text-center text-gray-500 dark:text-gray-400 mb-8">
+          We present the best of the best. All free, no catch
+        </p>
+
+        {/* Tab Bar */}
+        <div className="flex flex-wrap justify-center gap-2 mb-8">
+          {TAB_CONFIG.map(({ id, label, icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                activeTab === id
+                  ? "bg-indigo-500 text-white shadow-md shadow-indigo-200 dark:shadow-indigo-900/30"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+              }`}
+            >
+              <span>{icon}</span>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tool Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {displayTools.map((t) => (
+            <Link
+              key={`${t.category}-${t.slug}`}
+              href={`/${t.category}/${t.slug}`}
+              className="flex items-start gap-3 p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-indigo-200 dark:hover:border-indigo-800 hover:shadow-md transition-all group"
+            >
+              <span className="text-2xl mt-0.5 shrink-0">{t.icon}</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  {t.name}
+                </p>
+                <p className="text-xs font-medium text-indigo-500 dark:text-indigo-400 mt-0.5">
+                  {CATEGORIES[t.category].label} Tools
+                </p>
+                <p className="text-xs text-gray-400 mt-1 line-clamp-2">{t.description}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {activeTab !== "all" && (
+          <div className="mt-6 text-center">
+            <Link
+              href={`/${activeTab}`}
+              className="inline-flex items-center gap-1 text-sm font-medium text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 transition-colors"
+            >
+              View All {CATEGORIES[activeTab].label} Tools
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+            </Link>
+          </div>
+        )}
+      </section>
+
       {/* Features Bar */}
       <section className="border-y border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
         <div className="mx-auto max-w-6xl px-4 py-6">
@@ -151,97 +223,62 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Category Cards - TinyWow Style (click to go to subpage) */}
-      <section className="mx-auto max-w-6xl px-4 py-12">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-12">
-          {CAT_CONFIG.map(({ cat, icon, cardBg }) => {
-            const tools = getToolsByCategory(cat);
-            const featured = tools.filter((t) => t.featured).slice(0, 2);
-
-            return (
-              <Link
-                key={cat}
-                href={`/${cat}`}
-                className={`relative rounded-2xl p-5 text-left transition-all duration-300 group ${cardBg} text-white hover:shadow-lg hover:scale-[1.02]`}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-3xl">{icon}</span>
-                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm">
-                    {tools.length}+ tools
-                  </span>
-                </div>
-                <h3 className="text-lg font-bold mb-1">{CATEGORIES[cat].label} Tools</h3>
-                <p className="text-xs text-white/70 leading-relaxed line-clamp-2">{CATEGORIES[cat].description}</p>
-
-                {featured.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-white/20">
-                    <p className="text-[10px] text-white/50 mb-1.5 uppercase tracking-wider">Featured:</p>
-                    <div className="flex flex-wrap gap-1">
-                      {featured.map((t) => (
-                        <span key={t.slug} className="text-[11px] px-2 py-0.5 rounded-full bg-white/15 text-white/90">
-                          {t.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="absolute bottom-2 right-3">
-                  <svg className="w-4 h-4 text-white/60 group-hover:translate-x-0.5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
-                </div>
-              </Link>
-            );
-          })}
+      {/* Featured Tools Carousel */}
+      <section className="mx-auto max-w-6xl px-4 py-16">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white">
+              Free Tools You&apos;d Usually Pay For
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">
+              No Limits, No Sign-Up. Here&apos;s our featured tools
+            </p>
+          </div>
+          <div className="hidden sm:flex items-center gap-2">
+            <button
+              onClick={() => scrollCarousel("left")}
+              className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <button
+              onClick={() => scrollCarousel("right")}
+              className="w-10 h-10 rounded-full bg-indigo-500 text-white flex items-center justify-center hover:bg-indigo-600 transition-colors"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+          </div>
         </div>
 
-        {/* All Tools By Category */}
-        <div className="space-y-16">
-          {CAT_CONFIG.map(({ cat, icon, gradient, btnColor }) => {
-            const tools = getToolsByCategory(cat);
-
-            return (
-              <section key={cat} id={cat}>
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white text-lg`}>
-                      {icon}
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                        {CATEGORIES[cat].label} Tools
-                      </h2>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {CATEGORIES[cat].description}
-                      </p>
-                    </div>
-                  </div>
-                  <Link
-                    href={`/${cat}`}
-                    className={`hidden sm:inline-flex items-center gap-1 px-4 py-2 rounded-lg ${btnColor} text-white text-sm font-medium transition-colors`}
-                  >
-                    View All
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
-                  </Link>
+        <div
+          ref={carouselRef}
+          className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
+          {featuredTools.map((t) => (
+            <Link
+              key={`feat-${t.category}-${t.slug}`}
+              href={`/${t.category}/${t.slug}`}
+              className="shrink-0 w-72 sm:w-80 snap-start group"
+            >
+              <div className="h-44 rounded-xl bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-900 border border-gray-200 dark:border-gray-700 flex items-center justify-center mb-3 group-hover:border-indigo-300 dark:group-hover:border-indigo-700 transition-colors overflow-hidden">
+                <div className="text-center">
+                  <span className="text-5xl block mb-2">{t.icon}</span>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{t.name}</p>
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {tools.map((t) => (
-                    <ToolCard key={`${t.category}-${t.slug}`} tool={t} />
-                  ))}
-                </div>
-
-                <div className="sm:hidden mt-4 text-center">
-                  <Link
-                    href={`/${cat}`}
-                    className={`inline-flex items-center gap-1 px-5 py-2.5 rounded-lg ${btnColor} text-white text-sm font-medium`}
-                  >
-                    View All {CATEGORIES[cat].label} Tools
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
-                  </Link>
-                </div>
-              </section>
-            );
-          })}
+              </div>
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                {t.name}
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
+                {t.description}
+              </p>
+              <p className="text-sm font-medium text-indigo-500 dark:text-indigo-400 mt-2 inline-flex items-center gap-1 group-hover:gap-2 transition-all">
+                Learn more
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+              </p>
+            </Link>
+          ))}
         </div>
       </section>
 
