@@ -18,13 +18,13 @@ const CAT_CARDS: { cat: Category; icon: string; bg: string; label: string; solve
   { cat: "file", icon: "📁", bg: "bg-[#1A8FE3]", label: "File Tools", solve: "Solve Your File Problems" },
 ];
 
-const TAB_ITEMS: { id: Category | "all"; label: string }[] = [
-  { id: "all", label: "All Tools" },
-  { id: "pdf", label: "PDF" },
-  { id: "image", label: "Image" },
-  { id: "write", label: "Write" },
-  { id: "video", label: "Video" },
-  { id: "file", label: "File" },
+const TAB_ITEMS: { id: Category | "all"; label: string; icon: string }[] = [
+  { id: "all", label: "All Tools", icon: "🔧" },
+  { id: "pdf", label: "Pdf Tools", icon: "📄" },
+  { id: "video", label: "Video Tools", icon: "🎬" },
+  { id: "image", label: "Image Tools", icon: "🖼️" },
+  { id: "file", label: "Converter Tools", icon: "📁" },
+  { id: "write", label: "AI Write", icon: "✍️" },
 ];
 
 const STATS = [
@@ -221,43 +221,82 @@ export default function Home() {
 
         {/* Tab Filter */}
         <div className="flex flex-wrap justify-center gap-2 mb-8">
-          {TAB_ITEMS.map(({ id, label }) => (
+          {TAB_ITEMS.map(({ id, label, icon }) => (
             <button
               key={id}
               onClick={() => setActiveTab(id)}
-              className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all ${
+              className={`inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-medium transition-all ${
                 activeTab === id
-                  ? "bg-indigo-500 text-white"
+                  ? "bg-indigo-500 text-white shadow-md"
                   : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
               }`}
             >
+              <span className="text-base">{icon}</span>
               {label}
             </button>
           ))}
         </div>
 
-        {/* 3-Column Compact Tool Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {popularTools.map((t) => (
+        {/* 4-Column Tool Grid with Ad Space */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {popularTools.slice(0, 8).map((t) => (
             <Link
               key={`${t.category}-${t.slug}`}
               href={`/${t.category}/${t.slug}`}
-              className="flex items-center gap-3 px-4 py-4 rounded-[14px] border border-gray-200 dark:border-gray-800 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-md hover:-translate-y-0.5 transition-all group bg-white dark:bg-gray-900"
+              className="relative flex items-start gap-3 px-4 py-4 rounded-[14px] border border-gray-200 dark:border-gray-800 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-md hover:-translate-y-0.5 transition-all group bg-white dark:bg-gray-900"
             >
               <div className="w-11 h-11 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xl shrink-0">
                 {t.icon}
               </div>
-              <div className="min-w-0">
-                <p className="text-[15px] font-semibold text-gray-800 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                   {t.name}
                 </p>
-                <p className={`text-xs font-medium ${CAT_COLORS[t.category]}`}>
+                <p className={`text-xs font-medium mt-0.5 ${CAT_COLORS[t.category]}`}>
                   {CATEGORIES[t.category].label} Tools
                 </p>
+                <p className="text-xs text-gray-400 mt-1 line-clamp-2">{t.description}</p>
+              </div>
+              <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                <div className="w-2 h-2 rounded-full bg-indigo-400" />
               </div>
             </Link>
           ))}
         </div>
+
+        {/* Ad Placeholder Space */}
+        <div className="my-4 min-h-[90px] flex items-center justify-center rounded-xl bg-gray-50 dark:bg-gray-900 border border-dashed border-gray-200 dark:border-gray-800">
+          <p className="text-xs text-gray-300 dark:text-gray-700">Ad Space</p>
+        </div>
+
+        {/* Remaining Tools */}
+        {popularTools.length > 8 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {popularTools.slice(8).map((t) => (
+              <Link
+                key={`${t.category}-${t.slug}-2`}
+                href={`/${t.category}/${t.slug}`}
+                className="relative flex items-start gap-3 px-4 py-4 rounded-[14px] border border-gray-200 dark:border-gray-800 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-md hover:-translate-y-0.5 transition-all group bg-white dark:bg-gray-900"
+              >
+                <div className="w-11 h-11 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xl shrink-0">
+                  {t.icon}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                    {t.name}
+                  </p>
+                  <p className={`text-xs font-medium mt-0.5 ${CAT_COLORS[t.category]}`}>
+                    {CATEGORIES[t.category].label} Tools
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1 line-clamp-2">{t.description}</p>
+                </div>
+                <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                  <div className="w-2 h-2 rounded-full bg-indigo-400" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
 
         {/* All Tools Button */}
         <div className="mt-8 text-center">
