@@ -17,11 +17,24 @@ function WriteToolContent({ tool }: { tool: NonNullable<ReturnType<typeof getToo
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
 
   const handleGenerate = async () => {
     if (!input.trim()) return;
     setLoading(true);
     setOutput("");
+    setProgress(0);
+    setElapsed(0);
+
+    const startTime = Date.now();
+    const estimatedMs = input.length > 500 ? 15000 : 8000;
+    const timer = setInterval(() => {
+      const now = Date.now() - startTime;
+      setElapsed(Math.floor(now / 1000));
+      setProgress(Math.min(90, (now / estimatedMs) * 90));
+    }, 200);
+
     try {
       const res = await fetch("/api/ai/generate", {
         method: "POST",
@@ -30,9 +43,11 @@ function WriteToolContent({ tool }: { tool: NonNullable<ReturnType<typeof getToo
       });
       const data = await res.json();
       setOutput(data.result || "Something went wrong. Please try again.");
+      setProgress(100);
     } catch {
       setOutput("Network error. Please try again.");
     } finally {
+      clearInterval(timer);
       setLoading(false);
     }
   };
@@ -72,7 +87,17 @@ function WriteToolContent({ tool }: { tool: NonNullable<ReturnType<typeof getToo
           )}
         </button>
 
-        {/* Output */}
+        {loading && (
+          <div className="space-y-2">
+            <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-primary-400 to-primary-600 rounded-full transition-all duration-300 ease-out" style={{ width: `${progress}%` }} />
+            </div>
+            <div className="flex justify-between text-xs text-gray-400">
+              <span>Processing... {Math.round(progress)}%</span>
+              <span>{elapsed}s elapsed</span>
+            </div>
+          </div>
+        )}
         {output && (
           <div>
             <div className="flex items-center justify-between mb-2">

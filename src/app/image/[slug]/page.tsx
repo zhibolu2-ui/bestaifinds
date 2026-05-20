@@ -34,6 +34,7 @@ function ImageToolContent({ tool }: { tool: Tool }) {
   const [processing, setProcessing] = useState(false);
   const [done, setDone] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  const [previewResult, setPreviewResult] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [comingSoon, setComingSoon] = useState(false);
 
@@ -47,12 +48,95 @@ function ImageToolContent({ tool }: { tool: Tool }) {
   const [cropH, setCropH] = useState(300);
   const [ocrResult, setOcrResult] = useState("");
 
+  const previewableTools = ["resize", "crop", "flip", "black-white", "pixelate", "compress", "remove-bg", "upscale"];
+  const canPreview = previewableTools.includes(tool.slug);
+
   const handleFiles = useCallback((incoming: File[]) => {
     setFiles(incoming);
     setDone(false);
     setError("");
+    setPreviewResult(null);
     if (incoming[0]) setPreview(URL.createObjectURL(incoming[0]));
   }, []);
+
+  const generatePreview = useCallback(async () => {
+    if (!files[0]) return;
+    const img = new Image();
+    img.src = URL.createObjectURL(files[0]);
+    await new Promise((r) => { img.onload = r; });
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d")!;
+
+    switch (tool.slug) {
+      case "resize":
+        canvas.width = resizeW;
+        canvas.height = resizeH;
+        ctx.drawImage(img, 0, 0, resizeW, resizeH);
+        break;
+      case "crop":
+        canvas.width = cropW;
+        canvas.height = cropH;
+        ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+        break;
+      case "flip":
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        ctx.scale(-1, 1);
+        ctx.drawImage(img, -canvas.width, 0);
+        break;
+      case "black-white":
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        ctx.drawImage(img, 0, 0);
+        { const d = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          for (let i = 0; i < d.data.length; i += 4) {
+            const g = d.data[i] * 0.299 + d.data[i+1] * 0.587 + d.data[i+2] * 0.114;
+            d.data[i] = d.data[i+1] = d.data[i+2] = g;
+          }
+          ctx.putImageData(d, 0, 0);
+        }
+        break;
+      case "pixelate":
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        { const sw = Math.ceil(canvas.width / pixelSize);
+          const sh = Math.ceil(canvas.height / pixelSize);
+          ctx.imageSmoothingEnabled = false;
+          const tmpCanvas = document.createElement("canvas");
+          tmpCanvas.width = sw; tmpCanvas.height = sh;
+          const tc = tmpCanvas.getContext("2d")!;
+          tc.drawImage(img, 0, 0, sw, sh);
+          ctx.drawImage(tmpCanvas, 0, 0, canvas.width, canvas.height);
+        }
+        break;
+      case "compress":
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        ctx.drawImage(img, 0, 0);
+        break;
+      case "remove-bg":
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        ctx.drawImage(img, 0, 0);
+        { const d = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          for (let i = 0; i < d.data.length; i += 4) {
+            const br = d.data[i] * 0.299 + d.data[i+1] * 0.587 + d.data[i+2] * 0.114;
+            if (br > 220) d.data[i+3] = 0;
+          }
+          ctx.putImageData(d, 0, 0);
+        }
+        break;
+      case "upscale":
+        canvas.width = img.naturalWidth * 2;
+        canvas.height = img.naturalHeight * 2;
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        break;
+      default: return;
+    }
+    setPreviewResult(canvas.toDataURL("image/png"));
+  }, [files, tool.slug, resizeW, resizeH, cropX, cropY, cropW, cropH, pixelSize]);
 
   const process = async () => {
     if (!files[0]) return;
@@ -207,6 +291,34 @@ function ImageToolContent({ tool }: { tool: Tool }) {
             </div>
           )}
 
+          {canPreview && files.length > 0 && !done && (
+            <button onClick={generatePreview} className="w-full py-2 rounded-xl border-2 border-dashed border-primary-300 text-primary-600 text-sm font-medium hover:bg-primary-50 transition-colors">
+              Preview Effect
+            </button>
+          )}
+
+          {previewResult && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Preview Result</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <p className="text-xs text-gray-400 text-center">Before</p>
+                  <div className="rounded-xl overflow-hidden border border-gray-100 bg-gray-50 flex items-center justify-center p-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={preview!} alt="Before" className="max-h-40 rounded object-contain" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-gray-400 text-center">After</p>
+                  <div className="rounded-xl overflow-hidden border border-primary-200 bg-primary-50 flex items-center justify-center p-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={previewResult} alt="After" className="max-h-40 rounded object-contain" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
           {comingSoon ? (
@@ -323,11 +435,23 @@ function AiImageGenContent({ tool }: { tool: Tool }) {
   const [generating, setGenerating] = useState(false);
   const [imageSrc, setImageSrc] = useState("");
   const [error, setError] = useState("");
+  const [progress, setProgress] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
 
   const generate = async () => {
     setGenerating(true);
     setImageSrc("");
     setError("");
+    setProgress(0);
+    setElapsed(0);
+
+    const startTime = Date.now();
+    const timer = setInterval(() => {
+      const now = Date.now() - startTime;
+      setElapsed(Math.floor(now / 1000));
+      setProgress(Math.min(90, (now / 25000) * 90));
+    }, 200);
+
     try {
       const res = await fetch("/api/ai/image", {
         method: "POST",
@@ -342,9 +466,11 @@ function AiImageGenContent({ tool }: { tool: Tool }) {
       } else {
         setError(data.error || "Generation failed. Please try again.");
       }
+      setProgress(100);
     } catch {
       setError("Network error. Please try again.");
     } finally {
+      clearInterval(timer);
       setGenerating(false);
     }
   };
@@ -364,10 +490,21 @@ function AiImageGenContent({ tool }: { tool: Tool }) {
           {generating ? (
             <span className="inline-flex items-center gap-2">
               <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg>
-              Generating (~30s)...
+              Generating...
             </span>
           ) : "Generate Image"}
         </button>
+        {generating && (
+          <div className="space-y-2">
+            <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-purple-400 to-indigo-600 rounded-full transition-all duration-300 ease-out" style={{ width: `${progress}%` }} />
+            </div>
+            <div className="flex justify-between text-xs text-gray-400">
+              <span>AI is creating your image... {Math.round(progress)}%</span>
+              <span>{elapsed}s / ~25s</span>
+            </div>
+          </div>
+        )}
         {error && <p className="text-sm text-red-500 text-center">{error}</p>}
         {imageSrc && (
           <div className="space-y-3">
