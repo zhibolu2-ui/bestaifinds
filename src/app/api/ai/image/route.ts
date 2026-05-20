@@ -39,12 +39,22 @@ export async function POST(req: NextRequest) {
         n: 1,
         size: "1024x1024",
         quality: "medium",
+        moderation: "low",
       }),
     });
 
     if (!res.ok) {
-      const err = await res.text();
-      console.error("Image gen error:", err);
+      const errText = await res.text();
+      console.error("Image gen error:", errText);
+      try {
+        const errData = JSON.parse(errText);
+        if (errData.error?.code === "moderation_blocked") {
+          return NextResponse.json(
+            { error: "Your prompt was flagged by content safety. Please try a different description." },
+            { status: 400 },
+          );
+        }
+      } catch { /* ignore parse error */ }
       return NextResponse.json({ error: "Image generation failed. Please try again." }, { status: 500 });
     }
 
