@@ -1,19 +1,18 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { Outfit, JetBrains_Mono, Geist } from "next/font/google";
+import { Poppins, JetBrains_Mono } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
-
 const GA_ID = "G-SEBVN0582L";
 const ADSENSE_ID = "ca-pub-1615916133652088";
 
-const outfit = Outfit({
-  variable: "--font-outfit",
+const poppins = Poppins({
+  variable: "--font-poppins",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
   display: "swap",
 });
 
@@ -51,7 +50,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("h-full", "antialiased", outfit.variable, jetbrains.variable, "font-sans", geist.variable)}>
+    <html lang="en" className={cn("h-full", "antialiased", poppins.variable, jetbrains.variable)} style={{ fontFamily: "var(--font-poppins), sans-serif" }}>
       <head>
         <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
         <Script id="ga-init" strategy="afterInteractive">{`
