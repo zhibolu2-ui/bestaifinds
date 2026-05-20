@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState, useRef } from "react";
-import ToolCard from "@/components/ToolCard";
 import {
   CATEGORIES,
   Category,
@@ -11,13 +10,12 @@ import {
   TOOLS,
 } from "@/lib/tools";
 
-const TAB_CONFIG: { id: Category | "all"; label: string; icon: string }[] = [
-  { id: "all", label: "All Tools", icon: "🔧" },
-  { id: "pdf", label: "Pdf Tools", icon: "📄" },
-  { id: "image", label: "Image Tools", icon: "🖼️" },
-  { id: "write", label: "AI Write", icon: "✍️" },
-  { id: "video", label: "Video Tools", icon: "🎬" },
-  { id: "file", label: "Converter Tools", icon: "📁" },
+const CAT_CARDS: { cat: Category; icon: string; bg: string }[] = [
+  { cat: "pdf", icon: "📄", bg: "from-red-500 to-rose-600" },
+  { cat: "image", icon: "🖼️", bg: "from-blue-500 to-indigo-600" },
+  { cat: "video", icon: "🎬", bg: "from-purple-500 to-violet-600" },
+  { cat: "write", icon: "✍️", bg: "from-emerald-500 to-teal-600" },
+  { cat: "file", icon: "📁", bg: "from-amber-500 to-orange-600" },
 ];
 
 const FEATURES = [
@@ -30,7 +28,6 @@ const FEATURES = [
 export default function Home() {
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
-  const [activeTab, setActiveTab] = useState<Category | "all">("all");
   const carouselRef = useRef<HTMLDivElement>(null);
 
   const filtered = (() => {
@@ -61,16 +58,11 @@ export default function Home() {
       .map(({ tool }) => tool);
   })();
 
-  const displayTools = activeTab === "all"
-    ? TOOLS
-    : getToolsByCategory(activeTab);
-
   const featuredTools = getFeaturedTools();
 
   const scrollCarousel = (dir: "left" | "right") => {
     if (!carouselRef.current) return;
-    const amount = 340;
-    carouselRef.current.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
+    carouselRef.current.scrollBy({ left: dir === "left" ? -340 : 340, behavior: "smooth" });
   };
 
   return (
@@ -97,8 +89,7 @@ export default function Home() {
           </h1>
 
           <p className="mt-5 text-lg text-gray-500 dark:text-gray-400 max-w-xl mx-auto">
-            PDF, image, video, AI writing and file conversion tools.
-            No sign-up required. All free.
+            We offer PDF, video, image and other online tools to make your life easier
           </p>
 
           {/* Search */}
@@ -144,66 +135,48 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Most Popular Tools - Tab Filter */}
-      <section className="mx-auto max-w-6xl px-4 py-12">
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-center text-gray-900 dark:text-white mb-2">
-          Our Most Popular Tools
-        </h2>
-        <p className="text-center text-gray-500 dark:text-gray-400 mb-8">
-          We present the best of the best. All free, no catch
-        </p>
+      {/* Category Cards - Click to enter subpage */}
+      <section className="mx-auto max-w-6xl px-4 py-10">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          {CAT_CARDS.map(({ cat, icon, bg }) => {
+            const tools = getToolsByCategory(cat);
+            const featured = tools.filter((t) => t.featured).slice(0, 2);
 
-        {/* Tab Bar */}
-        <div className="flex flex-wrap justify-center gap-2 mb-8">
-          {TAB_CONFIG.map(({ id, label, icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id)}
-              className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                activeTab === id
-                  ? "bg-indigo-500 text-white shadow-md shadow-indigo-200 dark:shadow-indigo-900/30"
-                  : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-              }`}
-            >
-              <span>{icon}</span>
-              {label}
-            </button>
-          ))}
+            return (
+              <Link
+                key={cat}
+                href={`/${cat}`}
+                className={`relative rounded-2xl p-5 bg-gradient-to-br ${bg} text-white hover:shadow-xl hover:scale-[1.03] transition-all duration-300 group`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-3xl">{icon}</span>
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white/20">
+                    {tools.length}+ tools
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold mb-0.5">{CATEGORIES[cat].label} Tools</h3>
+                <p className="text-xs text-white/70 leading-relaxed line-clamp-2">{CATEGORIES[cat].description}</p>
+
+                {featured.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-white/20">
+                    <p className="text-[10px] text-white/50 mb-1 uppercase tracking-wider">Featured:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {featured.map((t) => (
+                        <span key={t.slug} className="text-[11px] px-2 py-0.5 rounded-full bg-white/15 text-white/90">
+                          {t.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="absolute bottom-2 right-3">
+                  <svg className="w-4 h-4 text-white/50 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+              </Link>
+            );
+          })}
         </div>
-
-        {/* Tool Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {displayTools.map((t) => (
-            <Link
-              key={`${t.category}-${t.slug}`}
-              href={`/${t.category}/${t.slug}`}
-              className="flex items-start gap-3 p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-indigo-200 dark:hover:border-indigo-800 hover:shadow-md transition-all group"
-            >
-              <span className="text-2xl mt-0.5 shrink-0">{t.icon}</span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                  {t.name}
-                </p>
-                <p className="text-xs font-medium text-indigo-500 dark:text-indigo-400 mt-0.5">
-                  {CATEGORIES[t.category].label} Tools
-                </p>
-                <p className="text-xs text-gray-400 mt-1 line-clamp-2">{t.description}</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        {activeTab !== "all" && (
-          <div className="mt-6 text-center">
-            <Link
-              href={`/${activeTab}`}
-              className="inline-flex items-center gap-1 text-sm font-medium text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 transition-colors"
-            >
-              View All {CATEGORIES[activeTab].label} Tools
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
-            </Link>
-          </div>
-        )}
       </section>
 
       {/* Features Bar */}
@@ -237,7 +210,7 @@ export default function Home() {
           <div className="hidden sm:flex items-center gap-2">
             <button
               onClick={() => scrollCarousel("left")}
-              className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+              className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:border-gray-300 transition-colors"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6"/></svg>
             </button>
@@ -252,7 +225,7 @@ export default function Home() {
 
         <div
           ref={carouselRef}
-          className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide"
+          className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {featuredTools.map((t) => (
@@ -261,7 +234,7 @@ export default function Home() {
               href={`/${t.category}/${t.slug}`}
               className="shrink-0 w-72 sm:w-80 snap-start group"
             >
-              <div className="h-44 rounded-xl bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-900 border border-gray-200 dark:border-gray-700 flex items-center justify-center mb-3 group-hover:border-indigo-300 dark:group-hover:border-indigo-700 transition-colors overflow-hidden">
+              <div className="h-44 rounded-xl bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-900 border border-gray-200 dark:border-gray-700 flex items-center justify-center mb-3 group-hover:border-indigo-300 dark:group-hover:border-indigo-700 transition-colors">
                 <div className="text-center">
                   <span className="text-5xl block mb-2">{t.icon}</span>
                   <p className="text-sm text-gray-500 dark:text-gray-400">{t.name}</p>
