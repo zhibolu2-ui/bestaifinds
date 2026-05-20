@@ -116,7 +116,27 @@ function PdfToolContent({ tool }: { tool: Tool }) {
           await cropPdf(files[0], cropMargin);
           break;
         case "to-word":
-        case "word-to-pdf":
+        case "word-to-pdf": {
+          const formData = new FormData();
+          formData.append("file", files[0]);
+          formData.append("action", tool.slug === "to-word" ? "pdf-to-word" : "word-to-pdf");
+          const convRes = await fetch("/api/file/convert", { method: "POST", body: formData });
+          if (!convRes.ok) {
+            const err = await convRes.json().catch(() => ({ error: "Conversion failed" }));
+            setError(err.error || "Conversion failed");
+            setProcessing(false);
+            return;
+          }
+          const blob = await convRes.blob();
+          const ext = tool.slug === "to-word" ? "txt" : "pdf";
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `converted.${ext}`;
+          a.click();
+          URL.revokeObjectURL(url);
+          break;
+        }
         case "edit":
         case "unlock":
           setComingSoon(true);

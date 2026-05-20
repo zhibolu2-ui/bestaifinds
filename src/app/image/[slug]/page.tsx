@@ -85,9 +85,44 @@ function ImageToolContent({ tool }: { tool: Tool }) {
           setProcessing(false);
           return;
         }
-        case "remove-bg":
-        case "upscale":
-          setComingSoon(true); setProcessing(false); return;
+        case "remove-bg": {
+          const rbImg = new Image();
+          rbImg.src = URL.createObjectURL(files[0]);
+          await new Promise((r) => { rbImg.onload = r; });
+          const rbCanvas = document.createElement("canvas");
+          rbCanvas.width = rbImg.naturalWidth;
+          rbCanvas.height = rbImg.naturalHeight;
+          const rbCtx = rbCanvas.getContext("2d")!;
+          rbCtx.drawImage(rbImg, 0, 0);
+          const rbData = rbCtx.getImageData(0, 0, rbCanvas.width, rbCanvas.height);
+          const d = rbData.data;
+          for (let i = 0; i < d.length; i += 4) {
+            const brightness = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+            if (brightness > 220) d[i + 3] = 0;
+          }
+          rbCtx.putImageData(rbData, 0, 0);
+          const rbBlob = await new Promise<Blob>((resolve) => rbCanvas.toBlob((b) => resolve(b!), "image/png"));
+          const { saveAs: saveRb } = await import("file-saver");
+          saveRb(rbBlob, "no-bg.png");
+          break;
+        }
+        case "upscale": {
+          const usImg = new Image();
+          usImg.src = URL.createObjectURL(files[0]);
+          await new Promise((r) => { usImg.onload = r; });
+          const scale = 2;
+          const usCanvas = document.createElement("canvas");
+          usCanvas.width = usImg.naturalWidth * scale;
+          usCanvas.height = usImg.naturalHeight * scale;
+          const usCtx = usCanvas.getContext("2d")!;
+          usCtx.imageSmoothingEnabled = true;
+          usCtx.imageSmoothingQuality = "high";
+          usCtx.drawImage(usImg, 0, 0, usCanvas.width, usCanvas.height);
+          const usBlob = await new Promise<Blob>((resolve) => usCanvas.toBlob((b) => resolve(b!), "image/png"));
+          const { saveAs: saveUs } = await import("file-saver");
+          saveUs(usBlob, "upscaled.png");
+          break;
+        }
         default: await new Promise((r) => setTimeout(r, 1500)); break;
       }
       setDone(true);

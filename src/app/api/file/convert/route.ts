@@ -73,7 +73,16 @@ export async function POST(req: NextRequest) {
       case "pdf-to-word": {
         outputExt = "txt";
         outputPath = join(TMP_DIR, `${id}.txt`);
-        await writeFile(outputPath, "PDF to Word conversion requires server-side pdftotext. Placeholder output.");
+        try {
+          await exec("pdftotext", ["-layout", inputPath, outputPath], { timeout: 60000 });
+        } catch (e) {
+          await cleanup(inputPath);
+          console.error("pdftotext error:", e);
+          return NextResponse.json(
+            { error: "PDF text extraction failed. poppler-utils may not be installed." },
+            { status: 500 },
+          );
+        }
         break;
       }
       default: {

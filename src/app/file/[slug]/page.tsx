@@ -83,8 +83,26 @@ function FileConvertContent({ tool }: { tool: Tool }) {
           downloadText(csvFromExcel, "converted.csv");
           break;
         }
-        case "excel-to-pdf":
-          setComingSoon(true); setProcessing(false); return;
+        case "excel-to-pdf": {
+          const formData = new FormData();
+          formData.append("file", files[0]);
+          formData.append("action", "excel-to-pdf");
+          const pdfRes = await fetch("/api/file/convert", { method: "POST", body: formData });
+          if (!pdfRes.ok) {
+            const err = await pdfRes.json().catch(() => ({ error: "Conversion failed" }));
+            setError(err.error || "Conversion failed");
+            setProcessing(false);
+            return;
+          }
+          const pdfBlob = await pdfRes.blob();
+          const pdfUrl = URL.createObjectURL(pdfBlob);
+          const a = document.createElement("a");
+          a.href = pdfUrl;
+          a.download = "converted.pdf";
+          a.click();
+          URL.revokeObjectURL(pdfUrl);
+          break;
+        }
         default:
           setComingSoon(true); setProcessing(false); return;
       }
