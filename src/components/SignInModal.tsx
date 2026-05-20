@@ -1,18 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface SignInModalProps {
   open: boolean;
   onClose: () => void;
 }
 
-export default function SignInModal({ open, onClose }: SignInModalProps) {
+function ModalContent({ onClose }: { onClose: () => void }) {
   const backdropRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
 
   useEffect(() => {
-    if (!open) return;
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
@@ -22,21 +22,16 @@ export default function SignInModal({ open, onClose }: SignInModalProps) {
       document.removeEventListener("keydown", handleEsc);
       document.body.style.overflow = "";
     };
-  }, [open, onClose]);
+  }, [onClose]);
 
-  useEffect(() => {
-    if (!open) setMode("signin");
-  }, [open]);
-
-  if (!open) return null;
-
-  return (
+  return createPortal(
     <div
       ref={backdropRef}
       onClick={(e) => { if (e.target === backdropRef.current) onClose(); }}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999 }}
+      className="flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
     >
-      <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 relative">
+      <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 relative" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -114,26 +109,22 @@ export default function SignInModal({ open, onClose }: SignInModalProps) {
           {mode === "signin" ? (
             <>
               Don&apos;t have an account?{" "}
-              <button
-                onClick={() => setMode("signup")}
-                className="text-indigo-500 hover:text-indigo-600 font-medium"
-              >
-                Sign Up
-              </button>
+              <button onClick={() => setMode("signup")} className="text-indigo-500 hover:text-indigo-600 font-medium">Sign Up</button>
             </>
           ) : (
             <>
               Already have an account?{" "}
-              <button
-                onClick={() => setMode("signin")}
-                className="text-indigo-500 hover:text-indigo-600 font-medium"
-              >
-                Sign In
-              </button>
+              <button onClick={() => setMode("signin")} className="text-indigo-500 hover:text-indigo-600 font-medium">Sign In</button>
             </>
           )}
         </p>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
+}
+
+export default function SignInModal({ open, onClose }: SignInModalProps) {
+  if (!open) return null;
+  return <ModalContent onClose={onClose} />;
 }

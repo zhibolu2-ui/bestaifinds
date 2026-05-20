@@ -210,8 +210,9 @@ export default function Home() {
                 <h3 className="text-[16px] font-bold">{label}</h3>
                 <p className="text-[13px] text-white/70 mt-0.5">{solve}</p>
                 {featured.length > 0 && (
-                  <div className="mt-4 pt-3 border-t border-white/20">
-                    <p className="text-[11px] text-white/50">Featured Tool: <span className="text-white/90 font-medium">{featured[0].name}</span></p>
+                  <div className="mt-4 pt-3 border-t border-white/20 flex items-center justify-between">
+                    <span className="text-[11px] text-white/50">Featured Tool:</span>
+                    <span className="text-[11px] text-white/90 font-medium px-2.5 py-1 rounded-full bg-white/10">{featured[0].name}</span>
                   </div>
                 )}
                 <div className="absolute bottom-4 right-4 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
@@ -223,20 +224,25 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ═══ Stats ═══ */}
-      <section className="mx-auto max-w-4xl px-4 py-6 mb-4">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 text-center">
-          {[
-            { num: "70+", label: "Online Tools" },
-            { num: "100%", label: "Free to Use" },
-            { num: "0", label: "Sign-ups Required" },
-            { num: "5", label: "Tool Categories" },
-          ].map((s) => (
-            <div key={s.label}>
-              <p className="text-[28px] sm:text-[32px] font-bold text-gray-900 dark:text-white">{s.num}</p>
-              <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1">{s.label}</p>
-            </div>
-          ))}
+      {/* ═══ Stats (TinyWow style with dividers) ═══ */}
+      <section className="mx-auto max-w-5xl px-4 py-8 mb-4">
+        <div className="rounded-2xl bg-[#1e2428] dark:bg-[#1e2428] border border-gray-700/30 px-8 py-6">
+          <div className="flex items-center justify-between">
+            {[
+              { num: "1m", label: "Active\nUsers" },
+              { num: "10m", label: "Files\nConverted" },
+              { num: "200+", label: "Online\nTools" },
+              { num: "500k", label: "PDFs\nCreated" },
+            ].map((s, i) => (
+              <div key={s.label} className="flex items-center gap-6">
+                {i > 0 && <div className="hidden sm:block w-px h-12 bg-gray-600/40" />}
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <p className="text-[32px] sm:text-[40px] font-bold text-white italic tracking-tight">{s.num}</p>
+                  <p className="text-[12px] sm:text-[13px] text-gray-400 leading-tight whitespace-pre-line">{s.label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
