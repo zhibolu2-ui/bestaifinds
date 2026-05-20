@@ -15,7 +15,7 @@ const NAV_ITEMS: { cat: Category; icon: string; color: string }[] = [
   { cat: "file", icon: "📁", color: "hover:text-amber-500" },
 ];
 
-function MegaMenu({ cat, onClose }: { cat: Category; onClose: () => void }) {
+function MegaMenu({ cat, onEnter, onLeave }: { cat: Category; onEnter: () => void; onLeave: () => void }) {
   const tools = getToolsByCategory(cat);
   const featured = tools.filter((t) => t.featured);
   const others = tools.filter((t) => !t.featured);
@@ -23,8 +23,8 @@ function MegaMenu({ cat, onClose }: { cat: Category; onClose: () => void }) {
   return (
     <div
       className="absolute left-0 right-0 top-full bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 shadow-xl z-[60]"
-      onMouseEnter={() => {}}
-      onMouseLeave={onClose}
+      onMouseEnter={onEnter}
+      onMouseLeave={onLeave}
     >
       <div className="mx-auto max-w-6xl px-4 py-6">
         <div className="flex gap-8">
@@ -36,11 +36,11 @@ function MegaMenu({ cat, onClose }: { cat: Category; onClose: () => void }) {
               </h3>
               <div className="space-y-1">
                 {featured.map((t) => (
-                  <Link
-                    key={t.slug}
-                    href={`/${t.category}/${t.slug}`}
-                    onClick={onClose}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors group"
+              <Link
+                  key={t.slug}
+                  href={`/${t.category}/${t.slug}`}
+                  onClick={onLeave}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors group"
                   >
                     <span className="text-xl">{t.icon}</span>
                     <div>
@@ -63,7 +63,7 @@ function MegaMenu({ cat, onClose }: { cat: Category; onClose: () => void }) {
                 <Link
                   key={t.slug}
                   href={`/${t.category}/${t.slug}`}
-                  onClick={onClose}
+                  onClick={onLeave}
                   className="px-2 py-1.5 rounded-md text-sm text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
                 >
                   {t.name}
@@ -74,7 +74,7 @@ function MegaMenu({ cat, onClose }: { cat: Category; onClose: () => void }) {
             <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
               <Link
                 href={`/${cat}`}
-                onClick={onClose}
+                onClick={onLeave}
                 className="inline-flex items-center gap-1 text-sm font-medium text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
               >
                 All {CATEGORIES[cat].label} Tools
@@ -192,6 +192,8 @@ export default function Navbar() {
                   {CATEGORIES[cat].label}
                   <svg className={`w-3 h-3 ml-0.5 transition-transform ${hoveredCat === cat ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m6 9 6 6 6-6"/></svg>
                 </Link>
+                {/* Invisible bridge to connect nav item to mega menu */}
+                {hoveredCat === cat && <div className="absolute left-0 right-0 h-4 top-full" />}
               </div>
             ))}
           </div>
@@ -270,7 +272,11 @@ export default function Navbar() {
 
         {/* Mega dropdown menu */}
         {hoveredCat && (
-          <MegaMenu cat={hoveredCat} onClose={handleMegaClose} />
+          <MegaMenu
+            cat={hoveredCat}
+            onEnter={() => handleCatEnter(hoveredCat)}
+            onLeave={handleCatLeave}
+          />
         )}
 
         {/* Mobile drawer */}

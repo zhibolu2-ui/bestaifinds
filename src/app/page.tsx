@@ -28,7 +28,7 @@ const FEATURES = [
 export default function Home() {
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
-  const [expandedCat, setExpandedCat] = useState<Category | null>(null);
+  
 
   const filtered = (() => {
     if (query.length < 1) return [];
@@ -151,23 +151,18 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Category Cards - TinyWow Style */}
+      {/* Category Cards - TinyWow Style (click to go to subpage) */}
       <section className="mx-auto max-w-6xl px-4 py-12">
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-12">
           {CAT_CONFIG.map(({ cat, icon, cardBg }) => {
             const tools = getToolsByCategory(cat);
             const featured = tools.filter((t) => t.featured).slice(0, 2);
-            const isExpanded = expandedCat === cat;
 
             return (
-              <button
+              <Link
                 key={cat}
-                onClick={() => setExpandedCat(isExpanded ? null : cat)}
-                className={`relative rounded-2xl p-5 text-left transition-all duration-300 cursor-pointer group ${
-                  isExpanded
-                    ? `${cardBg} text-white ring-2 ring-white/30 shadow-xl scale-[1.03]`
-                    : `${cardBg} text-white hover:shadow-lg hover:scale-[1.02]`
-                }`}
+                href={`/${cat}`}
+                className={`relative rounded-2xl p-5 text-left transition-all duration-300 group ${cardBg} text-white hover:shadow-lg hover:scale-[1.02]`}
               >
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-3xl">{icon}</span>
@@ -191,121 +186,63 @@ export default function Home() {
                   </div>
                 )}
 
-                <div className={`absolute bottom-2 right-3 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}>
-                  <svg className="w-4 h-4 text-white/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
+                <div className="absolute bottom-2 right-3">
+                  <svg className="w-4 h-4 text-white/60 group-hover:translate-x-0.5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
                 </div>
-              </button>
+              </Link>
             );
           })}
         </div>
 
-        {/* Expanded Category Tools */}
-        {expandedCat && (
-          <div className="mb-12 animate-in fade-in slide-in-from-top-4 duration-300">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl ${CAT_CONFIG.find((c) => c.cat === expandedCat)?.cardBg} flex items-center justify-center text-white text-lg`}>
-                  {CAT_CONFIG.find((c) => c.cat === expandedCat)?.icon}
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                    All {CATEGORIES[expandedCat].label} Tools
-                  </h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {getToolsByCategory(expandedCat).length} tools available
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Link
-                  href={`/${expandedCat}`}
-                  className={`hidden sm:inline-flex items-center gap-1 px-4 py-2 rounded-lg ${CAT_CONFIG.find((c) => c.cat === expandedCat)?.btnColor} text-white text-sm font-medium transition-colors`}
-                >
-                  View Full Page
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
-                </Link>
-                <button
-                  onClick={() => setExpandedCat(null)}
-                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                >
-                  <svg className="w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                </button>
-              </div>
-            </div>
+        {/* All Tools By Category */}
+        <div className="space-y-16">
+          {CAT_CONFIG.map(({ cat, icon, gradient, btnColor }) => {
+            const tools = getToolsByCategory(cat);
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {getToolsByCategory(expandedCat).map((t) => (
-                <ToolCard key={`${t.category}-${t.slug}`} tool={t} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* All Tools (collapsed view when no category selected) */}
-        {!expandedCat && (
-          <div className="space-y-16">
-            {CAT_CONFIG.map(({ cat, icon, gradient, btnColor }) => {
-              const tools = getToolsByCategory(cat);
-              const displayTools = tools.slice(0, 6);
-              const hasMore = tools.length > 6;
-
-              return (
-                <section key={cat} id={cat}>
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white text-lg`}>
-                        {icon}
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                          {CATEGORIES[cat].label} Tools
-                        </h2>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {CATEGORIES[cat].description}
-                        </p>
-                      </div>
+            return (
+              <section key={cat} id={cat}>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white text-lg`}>
+                      {icon}
                     </div>
-                    <Link
-                      href={`/${cat}`}
-                      className={`hidden sm:inline-flex items-center gap-1 px-4 py-2 rounded-lg ${btnColor} text-white text-sm font-medium transition-colors`}
-                    >
-                      View All
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
-                    </Link>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {displayTools.map((t) => (
-                      <ToolCard key={`${t.category}-${t.slug}`} tool={t} />
-                    ))}
-                  </div>
-
-                  {hasMore && (
-                    <div className="mt-4 text-center">
-                      <button
-                        onClick={() => setExpandedCat(cat)}
-                        className="inline-flex items-center gap-1 text-sm text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 font-medium transition-colors"
-                      >
-                        Show all {tools.length} {CATEGORIES[cat].label} tools
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
-                      </button>
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                        {CATEGORIES[cat].label} Tools
+                      </h2>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {CATEGORIES[cat].description}
+                      </p>
                     </div>
-                  )}
-
-                  <div className="sm:hidden mt-4 text-center">
-                    <Link
-                      href={`/${cat}`}
-                      className={`inline-flex items-center gap-1 px-5 py-2.5 rounded-lg ${btnColor} text-white text-sm font-medium`}
-                    >
-                      View All {CATEGORIES[cat].label} Tools
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
-                    </Link>
                   </div>
-                </section>
-              );
-            })}
-          </div>
-        )}
+                  <Link
+                    href={`/${cat}`}
+                    className={`hidden sm:inline-flex items-center gap-1 px-4 py-2 rounded-lg ${btnColor} text-white text-sm font-medium transition-colors`}
+                  >
+                    View All
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+                  </Link>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {tools.map((t) => (
+                    <ToolCard key={`${t.category}-${t.slug}`} tool={t} />
+                  ))}
+                </div>
+
+                <div className="sm:hidden mt-4 text-center">
+                  <Link
+                    href={`/${cat}`}
+                    className={`inline-flex items-center gap-1 px-5 py-2.5 rounded-lg ${btnColor} text-white text-sm font-medium`}
+                  >
+                    View All {CATEGORIES[cat].label} Tools
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+                  </Link>
+                </div>
+              </section>
+            );
+          })}
+        </div>
       </section>
 
       {/* CTA */}
