@@ -67,6 +67,8 @@ export default function PricingPage() {
     if (params.get("success") === "true") setSuccess(true);
   }, []);
 
+  const [cryptoModal, setCryptoModal] = useState<{ plan: string; price: string } | null>(null);
+
   const handleSubscribe = async (plan: "pro" | "business") => {
     if (!session?.user) {
       alert("Please sign in first to subscribe.");
@@ -74,7 +76,7 @@ export default function PricingPage() {
     }
     setLoading(plan);
     try {
-      const res = await fetch("/api/lemonsqueezy/checkout", {
+      const res = await fetch("/api/paypal/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan, billing }),
@@ -90,6 +92,13 @@ export default function PricingPage() {
     } finally {
       setLoading(null);
     }
+  };
+
+  const handleCrypto = (plan: "pro" | "business") => {
+    const price = plan === "pro"
+      ? (billing === "monthly" ? "$9.99" : "$83")
+      : (billing === "monthly" ? "$20" : "$167");
+    setCryptoModal({ plan: plan === "pro" ? "Pro" : "Business", price });
   };
 
   const userPlan = (session?.user as Record<string, unknown>)?.plan as string || "free";
@@ -194,8 +203,16 @@ export default function PricingPage() {
               disabled={loading === "pro" || userPlan === "pro"}
               className="block w-full text-center py-3 rounded-xl bg-white text-indigo-600 font-semibold text-sm hover:bg-gray-50 transition-colors shadow-md disabled:opacity-50"
             >
-              {loading === "pro" ? "Redirecting..." : userPlan === "pro" ? "Current Plan" : "Subscribe Now"}
+              {loading === "pro" ? "Redirecting..." : userPlan === "pro" ? "Current Plan" : "Subscribe with PayPal"}
             </button>
+            {userPlan !== "pro" && (
+              <button
+                onClick={() => handleCrypto("pro")}
+                className="block w-full text-center py-2.5 mt-2 rounded-xl border border-white/30 text-white text-xs font-medium hover:bg-white/10 transition-colors"
+              >
+                Pay with Crypto
+              </button>
+            )}
 
             <ul className="mt-6 space-y-3">
               {PRO_FEATURES.map((f) => (
@@ -227,8 +244,16 @@ export default function PricingPage() {
               disabled={loading === "business" || userPlan === "business"}
               className="block w-full text-center py-3 rounded-xl bg-indigo-500 text-white font-semibold text-sm hover:bg-indigo-600 transition-colors shadow-md disabled:opacity-50"
             >
-              {loading === "business" ? "Redirecting..." : userPlan === "business" ? "Current Plan" : "Subscribe Now"}
+              {loading === "business" ? "Redirecting..." : userPlan === "business" ? "Current Plan" : "Subscribe with PayPal"}
             </button>
+            {userPlan !== "business" && (
+              <button
+                onClick={() => handleCrypto("business")}
+                className="block w-full text-center py-2.5 mt-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                Pay with Crypto
+              </button>
+            )}
 
             <ul className="mt-6 space-y-3">
               {BIZ_FEATURES.map((f) => (
@@ -241,6 +266,41 @@ export default function PricingPage() {
           </div>
         </div>
       </section>
+
+      {/* Crypto Modal */}
+      {cryptoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setCryptoModal(null)}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Pay with Crypto</h3>
+              <button onClick={() => setCryptoModal(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+
+            <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-xl p-4 mb-6">
+              <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">{cryptoModal.plan} Plan — {cryptoModal.price}/{billing === "monthly" ? "month" : "year"}</p>
+            </div>
+
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Send the exact amount to one of the following addresses:</p>
+
+            <div className="space-y-4">
+              <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">USDT (TRC-20)</p>
+                <p className="text-xs font-mono text-gray-700 dark:text-gray-300 break-all select-all">{process.env.NEXT_PUBLIC_CRYPTO_USDT_TRC20 || "TBA — Contact support@bestaifinds.com"}</p>
+              </div>
+              <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">USDC (ERC-20)</p>
+                <p className="text-xs font-mono text-gray-700 dark:text-gray-300 break-all select-all">{process.env.NEXT_PUBLIC_CRYPTO_USDC_ERC20 || "TBA — Contact support@bestaifinds.com"}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-4">
+              <p className="text-xs text-yellow-700 dark:text-yellow-400">After payment, email <strong>zhibolu2@gmail.com</strong> with your transaction hash and registered email. Your plan will be activated within 24 hours.</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* FAQ */}
       <section className="mx-auto max-w-3xl px-4 py-16">
