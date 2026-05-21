@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-export default function GenerateArticlePage() {
+function GenerateArticleContent() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const [title, setTitle] = useState("");
@@ -169,5 +169,13 @@ export default function GenerateArticlePage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function GenerateArticlePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" /></div>}>
+      <GenerateArticleContent />
+    </Suspense>
   );
 }
