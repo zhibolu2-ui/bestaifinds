@@ -93,8 +93,8 @@ export default function PricingPage() {
   };
 
   const userPlan = (session?.user as Record<string, unknown>)?.plan as string || "free";
-  const proPrice = billing === "monthly" ? 9.90 : 6.90;
-  const bizPrice = billing === "monthly" ? 19.90 : 13.90;
+  const proPrice = billing === "monthly" ? 9.99 : 6.90;
+  const bizPrice = billing === "monthly" ? 20 : 13.92;
 
   return (
     <div className="bg-[#f7f7f8] dark:bg-[#16181c]">
