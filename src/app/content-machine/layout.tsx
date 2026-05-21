@@ -6,5 +6,10 @@ export const metadata = {
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  return <ContentMachineLayout>{children}</ContentMachineLayout>;
+  return (
+    <>
+      <style>{`footer { display: none !important; }`}</style>
+      <ContentMachineLayout>{children}</ContentMachineLayout>
+    </>
+  );
 }
